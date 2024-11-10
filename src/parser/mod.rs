@@ -3,6 +3,11 @@ use crate::{
     errors::ParseError,
 };
 
+const SELF_CLOSING_TAG: [&str; 14] = [
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+    "track", "wbr",
+];
+
 pub struct Parser {
     input: String,
     position: usize,
@@ -46,7 +51,12 @@ impl Parser {
         let tag_name = self.parse_tag_name();
         let attributes = self.parse_attributes()?;
 
-        if self.starts_with("/>") {
+        if self.starts_with(">") && SELF_CLOSING_TAG.contains(&tag_name.to_lowercase().as_str()) {
+            self.consume_char();
+            return Ok(Node::Element(Element::with_attributes(
+                tag_name, attributes,
+            )));
+        } else if self.starts_with("/>") {
             self.consume_char();
             self.consume_char();
             return Ok(Node::Element(Element::with_attributes(
@@ -281,6 +291,25 @@ mod tests {
                 assert_eq!(
                     element.attributes[0],
                     ("src".to_string(), "image.jpg".to_string())
+                );
+                assert!(element.children.is_empty());
+            }
+            _ => panic!("Expected a self-closing img element"),
+        }
+    }
+
+    #[test]
+    fn test_parse_self_closing_element_2() {
+        let input = "<meta http-equiv='content-type'>".to_string();
+        let mut parser = Parser::new(input);
+
+        match parser.parse() {
+            Ok(Node::Element(element)) => {
+                assert_eq!(element.tag_name, "meta");
+                assert_eq!(element.attributes.len(), 1);
+                assert_eq!(
+                    element.attributes[0],
+                    ("http-equiv".to_string(), "content-type".to_string())
                 );
                 assert!(element.children.is_empty());
             }
