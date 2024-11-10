@@ -88,7 +88,7 @@ impl Parser {
     }
 
     fn parse_tag_name(&mut self) -> String {
-        self.consume_while(|c| c.is_alphanumeric())
+        self.consume_while(|c| c.is_alphanumeric() || ['-', '.', '_'].contains(&c))
     }
 
     fn parse_attributes(&mut self) -> Result<Vec<(String, String)>, ParseError> {
